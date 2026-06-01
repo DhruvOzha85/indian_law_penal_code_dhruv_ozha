@@ -23,17 +23,24 @@ exports.createLaw = async (req, res) => {
 // @access  Public
 exports.getLaws = async (req, res) => {
   try {
-    let queryObj = {};
+    // Basic filtering
+    const reqQuery = { ...req.query };
+    const removeFields = ['select', 'sort', 'page', 'limit', 'search'];
+    removeFields.forEach(param => delete reqQuery[param]);
+
+    // Create query string to handle operators ($gt, $gte, etc)
+    let queryStr = JSON.stringify(reqQuery);
+    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
+    
+    let queryObj = JSON.parse(queryStr);
 
     // Search
     if (req.query.search) {
-      queryObj = {
-        $or: [
-          { title: { $regex: req.query.search, $options: 'i' } },
-          { description: { $regex: req.query.search, $options: 'i' } },
-          { section: { $regex: req.query.search, $options: 'i' } }
-        ]
-      };
+      queryObj.$or = [
+        { title: { $regex: req.query.search, $options: 'i' } },
+        { description: { $regex: req.query.search, $options: 'i' } },
+        { section: { $regex: req.query.search, $options: 'i' } }
+      ];
     }
 
     let query = Law.find(queryObj);
