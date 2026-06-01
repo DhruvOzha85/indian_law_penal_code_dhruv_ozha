@@ -117,3 +117,67 @@ exports.deleteLaw = async (req, res) => {
     });
   }
 };
+
+// @desc    Get all distinct acts
+// @route   GET /api/v1/laws/acts
+// @access  Public
+exports.getDistinctActs = async (req, res) => {
+  try {
+    const acts = await Law.distinct('act');
+    res.status(200).json({
+      success: true,
+      data: acts
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get all chapters for a specific act
+// @route   GET /api/v1/laws/acts/:actName/chapters
+// @access  Public
+exports.getChaptersByAct = async (req, res) => {
+  try {
+    const actName = req.params.actName;
+    const chapters = await Law.aggregate([
+      { $match: { act: new RegExp(`^${actName}$`, 'i'), chapter: { $ne: null } } },
+      { $group: { _id: "$chapter", chapter_title: { $first: "$chapter_title" } } },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    res.status(200).json({
+      success: true,
+      count: chapters.length,
+      data: chapters
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get all laws for a specific act
+// @route   GET /api/v1/laws/acts/:actName
+// @access  Public
+exports.getLawsByAct = async (req, res) => {
+  try {
+    const actName = req.params.actName;
+    const laws = await Law.find({ act: new RegExp(`^${actName}$`, 'i') });
+    
+    res.status(200).json({
+      success: true,
+      count: laws.length,
+      data: laws
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
